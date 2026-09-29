@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Terapia para Todos · CRM</title>
+  <style>
+    :root{font-family:Inter,system-ui,Arial,sans-serif;color:#17252b;background:#f4f7f6}*{box-sizing:border-box}body{margin:0}header{background:#123a3e;color:#fff;padding:24px max(20px,calc((100vw - 1160px)/2))}h1{margin:0;font-size:24px}header p{margin:6px 0 0;color:#bde0d6}main{max-width:1160px;margin:auto;padding:22px}h2{font-size:19px;margin:0 0 14px}.notice{border:1px solid #e8ce91;background:#fff9e9;border-radius:10px;padding:12px;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.card,.panel{background:white;border:1px solid #dbe5e2;border-radius:12px;padding:18px;box-shadow:0 2px 8px #092d2910}.card strong{display:block;font-size:29px;color:#125f58}.card small{color:#58706f}.section{margin-top:20px}.forms{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}.fields{display:grid;gap:9px}input,select,textarea,button{font:inherit}input,select,textarea{width:100%;padding:10px;border:1px solid #b9cbc7;border-radius:7px;background:#fff}textarea{min-height:66px}button{border:0;border-radius:7px;padding:10px 13px;background:#12675c;color:white;font-weight:650;cursor:pointer}button.secondary{background:#e7f0ed;color:#1a514b}button.danger{background:#ac5145}button:disabled{opacity:.5;cursor:not-allowed}label{font-size:13px;font-weight:650;color:#355854}.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid #e4eeeb;vertical-align:top}th{color:#526a67}div.scroll{overflow:auto}.muted{color:#6b807d}.status{padding:3px 7px;border-radius:20px;background:#e7f3ee;white-space:nowrap}.overdue{background:#ffe8e5;color:#8a382c}.success{color:#166f52}.error{color:#a22d26}.flash{position:sticky;top:0;z-index:2;padding:12px 20px;background:#e2f3e9;display:none}.flash.bad{background:#ffe8e5}.mini{font-size:12px}.actions{display:flex;gap:7px;flex-wrap:wrap}footer{margin:24px 0;color:#6b807d;font-size:13px}
+  </style>
+</head>
+<body>
+<header><h1>Terapia para Todos · CRM</h1><p>Protótipo local para validar o fluxo de oportunidades</p></header>
+<div id="flash" class="flash" role="status"></div>
+<main>
+  <div class="notice"><strong>Use apenas dados fictícios.</strong> Esta versão salva no navegador deste aparelho, sem login nem sincronização. Não use para dados reais de pessoas.</div>
+  <section class="grid" id="metrics"></section>
+  <section class="section forms">
+    <form class="panel fields" id="partner-form"><h2>Novo parceiro</h2><label>Nome<input name="name" required maxlength="100"></label><label>Abordagem<input name="approach" maxlength="100" placeholder="Ex.: TCC"></label><label>Demandas atendidas, separadas por vírgula<input name="topics" maxlength="300" placeholder="Ex.: ansiedade, luto, relacionamentos"></label><label>Turnos disponíveis<select name="shifts"><option value="Todos">Todos</option><option>Manhã</option><option>Tarde</option><option>Noite</option></select></label><label>Status<select name="status"><option value="em análise">Em análise</option><option value="ativo">Ativo</option><option value="pausado">Pausado</option></select></label><button>Cadastrar parceiro</button></form>
+    <form class="panel fields" id="package-form"><h2>Novo pacote</h2><label>Parceiro<select name="partnerId" class="partners" required></select></label><div class="row"><label>Quantidade contratada<input name="quantity" type="number" min="1" max="1000" required></label><label>Prazo em dias<input name="days" type="number" min="1" max="365" required></label></div><label>Data da compra<input name="purchasedAt" type="date" required></label><button>Cadastrar pacote</button></form>
+    <form class="panel fields" id="opportunity-form"><h2>Nova oportunidade</h2><label>Nome fictício<input name="name" required maxlength="100" placeholder="Ex.: Pessoa teste A"></label><label>Telefone fictício<input name="phone" maxlength="30" placeholder="Ex.: 21999990000"></label><label>Turno<select name="period"><option>Manhã</option><option>Tarde</option><option>Noite</option><option>A combinar</option></select></label><label>Motivo fictício<textarea name="reason" maxlength="500" placeholder="Ex.: busca apoio para ansiedade"></textarea></label><button>Cadastrar oportunidade</button></form>
+  </section>
+  <section class="section panel"><h2>Atualizar perfil do parceiro</h2><form id="partner-edit-form" class="fields"><label>Parceiro<select name="partnerId" id="edit-partner" required></select></label><div class="row"><label>Abordagem<input name="approach" maxlength="100" placeholder="Ex.: TCC"></label><label>Demandas atendidas<input name="topics" maxlength="300" placeholder="Ex.: ansiedade, luto"></label></div><div class="row"><label>Turnos<select name="shifts"><option value="Todos">Todos</option><option>Manhã</option><option>Tarde</option><option>Noite</option></select></label><label>Status<select name="status"><option value="em análise">Em análise</option><option value="ativo">Ativo</option><option value="pausado">Pausado</option></select></label></div><button>Salvar perfil</button></form></section>
+  <section class="section panel"><h2>Pacotes e pendências</h2><div class="scroll"><table><thead><tr><th>Parceiro</th><th>Compra / prazo</th><th>Contratadas</th><th>Reposições</th><th>Entregues ativas</th><th>Pendentes</th><th>Situação</th></tr></thead><tbody id="packages"></tbody></table></div></section>
+  <section class="section panel"><h2>Oportunidades</h2><div class="scroll"><table><thead><tr><th>Oportunidade</th><th>Encaminhamento ativo</th><th>Ações</th></tr></thead><tbody id="opportunities"></tbody></table></div></section>
+  <section class="section panel"><h2>Sugestão preliminar de parceiro</h2><label>Oportunidade<select id="match-opportunity"></select></label><div id="matches" class="section muted">Selecione uma oportunidade.</div><p class="muted mini">A sugestão usa palavras do motivo, turno, status e saldo do pacote. Confira a demanda e confirme manualmente antes de encaminhar; não é avaliação clínica.</p></section>
+  <section class="section forms">
+    <form class="panel fields" id="referral-form"><h2>Encaminhar</h2><label>Oportunidade sem encaminhamento<select name="opportunityId" id="available" required></select></label><label>Pacote de destino<select name="packageId" class="packages" required></select></label><button>Registrar encaminhamento</button></form>
+    <form class="panel fields" id="transfer-form"><h2>Redirecionar</h2><label>Oportunidade já encaminhada<select name="opportunityId" id="assigned" required></select></label><label>Novo pacote<select name="packageId" class="packages" required></select></label><label>Motivo obrigatório<textarea name="reason" required maxlength="300"></textarea></label><button>Redirecionar com histórico</button></form>
+    <form class="panel fields" id="replacement-form"><h2>Reposição</h2><label>Pacote da entrega original<select name="packageId" class="packages" required></select></label><label>Oportunidade entregue a repor<select name="referralId" id="replacement-referral" required></select></label><label>Motivo da reposição<textarea name="reason" required maxlength="300" placeholder="Ex.: número inválido; tentativas registradas"></textarea></label><button>Registrar obrigação de reposição</button><p class="muted mini">A entrega original continua no histórico. Uma entrega redirecionada e estornada não gera reposição para o parceiro anterior.</p></form>
+  </section>
+  <section class="section panel"><h2>Histórico</h2><div class="scroll"><table><thead><tr><th>Quando</th><th>Evento</th><th>Detalhes</th></tr></thead><tbody id="history"></tbody></table></div></section>
+  <section class="section panel"><h2>Dados de teste</h2><div class="actions"><button type="button" id="export" class="secondary">Exportar JSON</button><button type="button" id="reset" class="danger">Apagar dados de teste</button></div><p class="muted mini">Exporte antes de apagar dados do navegador. O arquivo exportado também deve conter apenas dados fictícios.</p></section>
+  <footer>Protótipo de validação · Sem dados reais · Ainda não conectado ao Supabase</footer>
+</main>
+<script>
+(()=>{'use strict';
+ const KEY='tpt-crm-prototipo-v1';
+ const empty=()=>({partners:[],packages:[],opportunities:[],referrals:[],replacements:[],history:[]});
+ let db;try{db=JSON.parse(localStorage.getItem(KEY))||empty()}catch{db=empty()}
+ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+ const id=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random();
+ const now=()=>new Date().toISOString();
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const partner=id=>db.partners.find(x=>x.id===id);
+ const pkg=id=>db.packages.find(x=>x.id===id);
+ const opp=id=>db.opportunities.find(x=>x.id===id);
+ const active=oid=>db.referrals.find(x=>x.opportunityId===oid&&x.active);
+ const count=pid=>db.referrals.filter(x=>x.packageId===pid&&x.active).length;
+ const obligations=pid=>db.replacements.filter(x=>x.packageId===pid).length;
+ const pending=p=>Math.max(0,p.quantity+obligations(p.id)-count(p.id));
+ const due=p=>{let d=new Date(p.purchasedAt+'T12:00:00');d.setDate(d.getDate()+p.days);return d};
+ const date=s=>new Date(s).toLocaleDateString('pt-BR');
+ const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ const topics=['ansiedade','luto','depressao','relacionamento','tdah','tea','compulsao','dependencia','trauma','panico','toc'];
+ function renderMatches(){const o=opp($('#match-opportunity').value),el=$('#matches');if(!o){el.textContent='Selecione uma oportunidade.';return}const words=topics.filter(t=>norm(o.reason).includes(t));if(!words.length){el.textContent='Motivo sem palavra reconhecida. Faça a triagem manual antes de escolher o parceiro.';return}const found=db.partners.filter(p=>(p.status||'ativo')==='ativo').map(p=>{const fit=words.filter(t=>norm(p.topics).includes(t));const shift=!p.shifts||p.shifts==='Todos'||o.period==='A combinar'||p.shifts===o.period;const packs=db.packages.filter(x=>x.partnerId===p.id&&pending(x)>0);return {p,fit,shift,packs}}).filter(x=>x.fit.length&&x.shift&&x.packs.length).sort((a,b)=>b.fit.length-a.fit.length);el.innerHTML=found.length?`<p>Palavras encontradas no motivo: <strong>${esc(words.join(', '))}</strong></p>`+found.map(x=>`<p><strong>${esc(x.p.name)}</strong> · ${esc(x.p.approach||'Abordagem não informada')} · ${esc(x.fit.join(', '))} · ${x.packs.reduce((n,p)=>n+pending(p),0)} pendente(s)</p>`).join(''):'Nenhum parceiro ativo com demanda, turno e saldo compatíveis. Revise manualmente.'}
+ function save(){localStorage.setItem(KEY,JSON.stringify(db));render()}
+ function event(type,detail){db.history.push({id:id(),at:now(),type,detail})}
+ function flash(message,bad=false){const el=$('#flash');el.textContent=message;el.className='flash'+(bad?' bad':'');el.style.display='block';setTimeout(()=>el.style.display='none',6000)}
+ function options(el,items,label){const current=el.value;el.innerHTML='<option value="">Selecione</option>'+items.map(x=>`<option value="${esc(x.id)}">${esc(label(x))}</option>`).join('');if(items.some(x=>x.id===current))el.value=current}
+ function render(){
+  const open=db.opportunities.filter(o=>!active(o.id)),assigned=db.opportunities.filter(o=>active(o.id));
+  const totalPending=db.packages.reduce((n,p)=>n+pending(p),0),late=db.packages.filter(p=>pending(p)>0&&due(p)<new Date()).length;
+  $('#metrics').innerHTML=[['Parceiros',db.partners.length],['Oportunidades',db.opportunities.length],['Encaminhamentos ativos',db.referrals.filter(r=>r.active).length],['Pendências',totalPending],['Pacotes vencidos',late]].map(([k,v])=>`<div class="card"><small>${k}</small><strong>${v}</strong></div>`).join('');
+  $$('.partners').forEach(el=>options(el,db.partners,x=>x.name));
+  $$('.packages').forEach(el=>options(el,db.packages,x=>`${partner(x.partnerId)?.name||'?'} · pacote ${x.quantity} · ${date(x.purchasedAt)}`));
+  options($('#edit-partner'),db.partners,x=>`${x.name} · ${x.status||'ativo'}`);
+  options($('#match-opportunity'),db.opportunities,x=>`${x.name} · ${x.period}`);
+  const replacementPackage=$('#replacement-form [name="packageId"]').value;
+  options($('#replacement-referral'),db.referrals.filter(r=>r.packageId===replacementPackage&&r.active&&!db.replacements.some(x=>x.referralId===r.id)),r=>opp(r.opportunityId)?.name||'?');
+  options($('#available'),open,x=>x.name);options($('#assigned'),assigned,x=>x.name);
+  $('#packages').innerHTML=db.packages.map(p=>{let n=pending(p),over=n&&due(p)<new Date();return `<tr><td>${esc(partner(p.partnerId)?.name)}</td><td>${date(p.purchasedAt)} / ${date(due(p))}</td><td>${p.quantity}</td><td>${obligations(p.id)}</td><td>${count(p.id)}</td><td><strong>${n}</strong></td><td><span class="status ${over?'overdue':''}">${over?'Vencido':n?'Em andamento':'Concluído'}</span></td></tr>`}).join('')||'<tr><td colspan="7" class="muted">Nenhum pacote cadastrado.</td></tr>';
+  $('#opportunities').innerHTML=db.opportunities.map(o=>{const a=active(o.id),p=a&&pkg(a.packageId);return `<tr><td><strong>${esc(o.name)}</strong><br><span class="muted">${esc(o.period)} · ${esc(o.reason)}</span></td><td>${a?`${esc(partner(p?.partnerId)?.name)} · ${date(a.at)}`:'Aguardando'}</td><td>${a?'Redirecionar no formulário abaixo':'Encaminhar no formulário abaixo'}</td></tr>`}).join('')||'<tr><td colspan="3" class="muted">Nenhuma oportunidade cadastrada.</td></tr>';
+  $('#history').innerHTML=[...db.history].reverse().map(e=>`<tr><td>${new Date(e.at).toLocaleString('pt-BR')}</td><td>${esc(e.type)}</td><td>${esc(e.detail)}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">Nenhum evento registrado.</td></tr>';
+  renderMatches();
+ }
+ function form(selector,fn){$(selector).addEventListener('submit',e=>{e.preventDefault();try{fn(Object.fromEntries(new FormData(e.currentTarget)));e.currentTarget.reset();save();flash('Registrado com sucesso.')}catch(err){flash(err.message,true)}})}
+ form('#partner-form',v=>{const name=v.name.trim();if(!name)throw Error('Informe o nome.');const x={id:id(),name,approach:v.approach.trim(),topics:v.topics.trim(),shifts:v.shifts,status:v.status};db.partners.push(x);event('Parceiro criado',name)});
+ form('#partner-edit-form',v=>{const p=partner(v.partnerId);if(!p)throw Error('Selecione um parceiro.');Object.assign(p,{approach:v.approach.trim(),topics:v.topics.trim(),shifts:v.shifts,status:v.status});event('Perfil atualizado',`${p.name}: ${p.status}, ${p.shifts}, ${p.topics}`)});
+ $('#edit-partner').addEventListener('change',e=>{const p=partner(e.target.value),f=$('#partner-edit-form');f.elements.approach.value=p?.approach||'';f.elements.topics.value=p?.topics||'';f.elements.shifts.value=p?.shifts||'Todos';f.elements.status.value=p?.status||'ativo'});
+ $('#match-opportunity').addEventListener('change',renderMatches);
+ form('#package-form',v=>{if(!partner(v.partnerId))throw Error('Selecione um parceiro.');const q=Number(v.quantity),days=Number(v.days);if(!Number.isInteger(q)||q<1||!Number.isInteger(days)||days<1||!v.purchasedAt)throw Error('Informe quantidade, prazo e data válidos.');const p={id:id(),partnerId:v.partnerId,quantity:q,days,purchasedAt:v.purchasedAt};db.packages.push(p);event('Pacote criado',`${partner(v.partnerId).name}: ${q} oportunidades em ${days} dias`)});
+ form('#opportunity-form',v=>{const name=v.name.trim();if(!name)throw Error('Informe um nome fictício.');const o={id:id(),name,phone:v.phone.trim(),period:v.period,reason:v.reason.trim(),at:now()};db.opportunities.push(o);event('Oportunidade criada',name)});
+ form('#referral-form',v=>{const o=opp(v.opportunityId),p=pkg(v.packageId);if(!o||!p)throw Error('Selecione oportunidade e pacote.');if((partner(p.partnerId)?.status||'ativo')!=='ativo')throw Error('O parceiro precisa estar ativo.');if(active(o.id))throw Error('Esta oportunidade já tem encaminhamento ativo.');if(pending(p)<1)throw Error('Este pacote não tem saldo pendente.');db.referrals.push({id:id(),opportunityId:o.id,packageId:p.id,at:now(),active:true});event('Encaminhamento',`${o.name} → ${partner(p.partnerId).name}`)});
+ form('#transfer-form',v=>{const o=opp(v.opportunityId),p=pkg(v.packageId),a=o&&active(o.id),reason=v.reason.trim();if(!o||!p||!a)throw Error('Selecione uma oportunidade ativa e um pacote.');if((partner(p.partnerId)?.status||'ativo')!=='ativo')throw Error('O novo parceiro precisa estar ativo.');if(!reason)throw Error('O redirecionamento exige motivo.');if(a.packageId===p.id)throw Error('Escolha outro pacote.');if(db.replacements.some(x=>x.referralId===a.id))throw Error('Esta entrega já tem reposição. Revise a obrigação antes de redirecionar.');if(pending(p)<1)throw Error('O novo pacote não tem saldo pendente.');const old=pkg(a.packageId);a.active=false;a.endedAt=now();a.transferReason=reason;db.referrals.push({id:id(),opportunityId:o.id,packageId:p.id,at:now(),active:true});event('Redirecionamento',`${o.name}: ${partner(old.partnerId).name} → ${partner(p.partnerId).name}. Motivo: ${reason}`)});
+ form('#replacement-form',v=>{const p=pkg(v.packageId),r=db.referrals.find(x=>x.id===v.referralId),reason=v.reason.trim();if(!p||!r||r.packageId!==p.id||!r.active||!reason)throw Error('Selecione uma entrega ativa desse pacote e informe o motivo.');if(db.replacements.some(x=>x.referralId===r.id))throw Error('Essa entrega já teve reposição registrada.');db.replacements.push({id:id(),packageId:p.id,referralId:r.id,reason,at:now()});event('Reposição aprovada',`${partner(p.partnerId).name}: +1 obrigação pela oportunidade ${opp(r.opportunityId).name}. ${reason}`)});
+ $('#replacement-form [name="packageId"]').addEventListener('change',()=>{const selected=$('#replacement-form [name="packageId"]').value;options($('#replacement-referral'),db.referrals.filter(r=>r.packageId===selected&&r.active&&!db.replacements.some(x=>x.referralId===r.id)),r=>opp(r.opportunityId)?.name||'?')});
+ $('#export').onclick=()=>{const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='crm-dados-ficticios.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+ $('#reset').onclick=()=>{if(confirm('Apagar todos os dados fictícios deste navegador?')){db=empty();save();flash('Dados de teste apagados.')}};
+ render();
+})();
+</script>
+</body>
+</html>
