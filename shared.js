@@ -15,7 +15,7 @@ function addAuth(){
  document.querySelector('header p').textContent='Base compartilhada · Supabase';
  $('.notice').innerHTML='<strong>Base compartilhada.</strong> Os dados desta versão ficam centralizados no Supabase e exigem usuário autorizado.';
  const box=document.createElement('section');box.id='auth-box';box.className='panel';box.style='max-width:440px;margin:30px auto';
- box.innerHTML='<h2>Entrar no CRM</h2><div class="fields"><label>E-mail<input id="crm-email" type="email"></label><label>Senha<input id="crm-password" type="password"></label><div class="row"><button id="crm-login" type="button">Entrar</button><button id="crm-signup" type="button" class="secondary">Criar conta</button></div><p id="auth-status" class="muted mini">A primeira conta assume a administração inicial. Outras contas precisam ser liberadas pelo administrador.</p></div>';
+ box.innerHTML='<h2>Entrar no CRM</h2><div class="fields"><label>E-mail<input id="crm-email" type="email"></label><label>Senha<input id="crm-password" type="password"></label><div class="row"><button id="crm-login" type="button">Entrar</button><button id="crm-signup" type="button" class="secondary">Criar conta</button></div><p id="auth-status" class="muted mini"><strong>Versão 03/10 · diagnóstico ativo.</strong> Preparando conexão...</p></div>';
  $('main').prepend(box);
  const admin=document.createElement('section');admin.id='admin-box';admin.className='panel section';admin.style.display='none';
  admin.innerHTML='<h2>Liberar usuário</h2><div class="row"><input id="member-email" type="email" placeholder="E-mail da pessoa"><select id="member-role"><option value="operator">Operador</option><option value="admin">Administrador</option></select><button id="member-add" type="button">Liberar acesso</button></div><p class="muted mini">A pessoa precisa criar a conta primeiro.</p>';
@@ -85,5 +85,5 @@ function bind(){
  $('#replacement-form [name="packageId"]').onchange=()=>render();$('#match-opportunity').onchange=renderMatches;
 }
 addAuth();
-fetch('/api/config',{cache:'no-store'}).then(r=>r.json()).then(cfg=>{if(!cfg.url||!cfg.key)throw Error(cfg.error||'Configuração indisponível');sb=supabase.createClient(cfg.url,cfg.key);bind();return boot()}).catch(e=>flash('Falha ao iniciar CRM: '+e.message,true));
+fetch('/api/config',{cache:'no-store'}).then(async r=>{const cfg=await r.json();if(!r.ok||!cfg.url||!cfg.key)throw Error(cfg.error||'Configuração indisponível');if(typeof supabase==='undefined')throw Error('Biblioteca de autenticação não carregou');sb=supabase.createClient(cfg.url,cfg.key);bind();$('#auth-status').innerHTML='<strong>Versão 03/10 · conexão pronta.</strong> Preencha e-mail e senha.';return boot()}).catch(e=>{const s=$('#auth-status');if(s)s.textContent='Falha ao iniciar CRM: '+e.message;flash('Falha ao iniciar CRM: '+e.message,true)});
 })();
