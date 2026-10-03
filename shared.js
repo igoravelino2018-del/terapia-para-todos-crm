@@ -46,6 +46,7 @@ async function load(){
  const bad=rs.find(x=>x.error);if(bad)throw bad.error;
  [db.partners,db.packages,db.opportunities,db.referrals,db.replacements,db.history]=rs.map(x=>x.data);render();
 }
+function renderPartnerDirectory(){const el=$('#partner-directory');if(!el)return;const q=String($('#partner-search')?.value||'').toLowerCase(),st=$('#partner-status-filter')?.value||'',norm=s=>String(s||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();const list=db.partners.filter(p=>(!st||p.status===st)&&(!q||norm([p.name,p.apach,p.approach,p.topics,p.audiences,p.availability,p.professional_registry].join(' ')).includes(norm(q))));$('#partner-count').textContent=list.length+' de '+db.partners.length+' profissionais';el.innerHTML=list.map(p=>'<article class="partner-card"><div class="partner-card-head"><div><strong>'+esc(p.name)+'</strong><div class="muted mini">'+esc(p.professional_registry||'Registro não informado')+'</div></div><span class="status">'+esc(p.status)+'</span></div><p><b>Abordagem:</b> '+esc(p.approach||'Não informada')+'</p><p><b>Demandas:</b> '+esc(p.topics||'Não informadas')+'</p><p><b>Disponibilidade:</b> '+esc(p.availability||p.shifts||'Não informada')+'</p><p><b>Público:</b> '+esc(p.audiences||'Não informado')+'</p></article>').join('')||'<p class="muted">Nenhum profissional encontrado.</p>'}
 function render(){
  const open=db.opportunities.filter(o=>!active(o.id)),assigned=db.opportunities.filter(o=>active(o.id));
  const total=db.packages.reduce((n,p)=>n+pending(p),0),late=db.packages.filter(p=>pending(p)>0&&due(p)<new Date()).length;
@@ -59,7 +60,7 @@ function render(){
  $('#packages').innerHTML=db.packages.map(p=>{let n=pending(p),over=n>0&&due(p)<new Date();return '<tr><td>'+esc(partner(p.partner_id)?.name)+'</td><td>'+date(p.purchased_at)+' / '+date(due(p))+'</td><td>'+p.quantity+'</td><td>'+obligations(p.id)+'</td><td>'+count(p.id)+'</td><td><strong>'+n+'</strong></td><td><span class="status '+(over?'overdue':'')+'">'+(over?'Vencido':n?'Em andamento':'Concluído')+'</span></td></tr>'}).join('')||'<tr><td colspan="7" class="muted">Nenhum pacote.</td></tr>';
  $('#opportunities').innerHTML=db.opportunities.map(o=>{let r=active(o.id),p=r&&pkg(r.package_id);return '<tr><td><strong>'+esc(o.name)+'</strong><br><span class="muted">'+esc(o.period)+' · '+esc(o.reason)+'</span></td><td>'+(r?esc(partner(p?.partner_id)?.name)+' · '+date(r.created_at):'Aguardando')+'</td><td>'+(r?'Redirecionar no formulário abaixo':'Encaminhar no formulário abaixo')+'</td></tr>'}).join('')||'<tr><td colspan="3" class="muted">Nenhuma oportunidade.</td></tr>';
  $('#history').innerHTML=db.history.map(h=>'<tr><td>'+new Date(h.occurred_at).toLocaleString('pt-BR')+'</td><td>'+esc(h.event_type)+'</td><td>'+esc(h.payload?.detail||h.legacy_detail||JSON.stringify(h.payload||{}))+'</td></tr>').join('')||'<tr><td colspan="3" class="muted">Nenhum evento.</td></tr>';
- renderMatches();
+ renderMatches();renderPartnerDirectory();
 }
 function renderMatches(){
  const o=opp($('#match-opportunity')?.value),el=$('#matches');if(!el)return;if(!o){el.textContent='Selecione uma oportunidade.';return}
@@ -82,7 +83,7 @@ function bind(){
  bindForm('#referral-form',async v=>{const {error}=await sb.rpc('create_referral',{p_opportunity_id:v.opportunityId,p_package_id:v.packageId});if(error)throw error});
  bindForm('#transfer-form',async v=>{const {error}=await sb.rpc('transfer_referral',{p_opportunity_id:v.opportunityId,p_new_package_id:v.packageId,p_reason:v.reason.trim()});if(error)throw error});
  bindForm('#replacement-form',async v=>{const {error}=await sb.rpc('create_replacement',{p_referral_id:v.referralId,p_reason:v.reason.trim()});if(error)throw error});
- $('#replacement-form [name="packageId"]').onchange=()=>render();$('#match-opportunity').onchange=renderMatches;
+ $('#replacement-form [name="packageId"]').onchange=()=>render();$('#match-opportunity').onchange=renderMatches;$('#partner-search').oninput=renderPartnerDirectory;$('#partner-status-filter').onchange=renderPartnerDirectory;
 }
 addAuth();
 fetch('/api/config',{cache:'no-store'}).then(async r=>{const cfg=await r.json();if(!r.ok||!cfg.url||!cfg.key)throw Error(cfg.error||'Configuração indisponível');if(typeof supabase==='undefined')throw Error('Biblioteca de autenticação não carregou');sb=supabase.createClient(cfg.url,cfg.key);bind();$('#auth-status').innerHTML='<strong>Versão 03/10 · conexão pronta.</strong> Preencha e-mail e senha.';return boot()}).catch(e=>{const s=$('#auth-status');if(s)s.textContent='Falha ao iniciar CRM: '+e.message;flash('Falha ao iniciar CRM: '+e.message,true)});
