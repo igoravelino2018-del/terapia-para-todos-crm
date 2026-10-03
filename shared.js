@@ -65,7 +65,7 @@ function render(){
 function renderMatches(){
  const o=opp($('#match-opportunity')?.value),el=$('#matches');if(!el)return;if(!o){el.textContent='Selecione uma oportunidade.';return}
  const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),tokens=s=>norm(s).split(/[^a-z0-9]+/).filter(w=>w.length>3);
- const reason=tokens(o.reason),period=norm(o.period),audienceHint=norm([o.reason,o.name].join(' '));
+ const reason=tokens(o.reason),period=norm(o.period),age=Number(o.age)||null,ageAudience=age===null?'':age<12?'crianca':age<18?'adolescente':age>=60?'idoso':'adulto',audienceHint=norm([o.reason,ageAudience].join(' '));
  const scored=db.partners.filter(p=>p.status==='ativo').map(p=>{
   const pt=tokens(p.topics),pa=tokens(p.audiences),avail=norm([p.availability,p.shifts].join(' '));
   const demand=[...new Set(reason.filter(w=>pt.includes(w)))],aud=[...new Set(reason.filter(w=>pa.includes(w)))];
@@ -88,7 +88,7 @@ function bind(){
  bindForm('#partner-edit-form',async v=>{const {error}=await sb.from('partners').update({approach:v.approach.trim(),topics:v.topics.trim(),shifts:v.shifts,status:v.status,version:partner(v.partnerId).version+1}).eq('id',v.partnerId).eq('version',partner(v.partnerId).version);if(error)throw error});
  $('#edit-partner').onchange=e=>{const p=partner(e.target.value),f=$('#partner-edit-form');f.elements.approach.value=p?.approach||'';f.elements.topics.value=p?.topics||'';f.elements.shifts.value=p?.shifts||'Todos';f.elements.status.value=p?.status||'ativo'};
  bindForm('#package-form',async v=>{const {error}=await sb.from('packages').insert({partner_id:v.partnerId,quantity:+v.quantity,term_days:+v.days,purchased_at:v.purchasedAt,created_by:user.id});if(error)throw error});
- bindForm('#opportunity-form',async v=>{const {error}=await sb.from('opportunities').insert({name:v.name.trim(),phone:v.phone.trim(),period:v.period,reason:v.reason.trim(),created_by:user.id});if(error)throw error});
+ bindForm('#opportunity-form',async v=>{const phone=v.phone.trim().replace(/\D/g,'');if(phone){const duplicate=db.opportunities.find(o=>String(o.phone||'').replace(/\D/g,'')===phone);if(duplicate&&!confirm('Já existe uma oportunidade com este WhatsApp: '+duplicate.name+'. Deseja cadastrar mesmo assim?'))return}const age=v.age?+v.age:null;const {error}=await sb.from('opportunities').insert({name:v.name.trim(),age,phone,period:v.period,reason:v.reason.trim(),created_by:user.id});if(error)throw error});
  bindForm('#referral-form',async v=>{const {error}=await sb.rpc('create_referral',{p_opportunity_id:v.opportunityId,p_package_id:v.packageId});if(error)throw error});
  bindForm('#transfer-form',async v=>{const {error}=await sb.rpc('transfer_referral',{p_opportunity_id:v.opportunityId,p_new_package_id:v.packageId,p_reason:v.reason.trim()});if(error)throw error});
  bindForm('#replacement-form',async v=>{const {error}=await sb.rpc('create_replacement',{p_referral_id:v.referralId,p_reason:v.reason.trim()});if(error)throw error});
