@@ -64,10 +64,19 @@ function render(){
 }
 function renderMatches(){
  const o=opp($('#match-opportunity')?.value),el=$('#matches');if(!el)return;if(!o){el.textContent='Selecione uma oportunidade.';return}
- const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),topics=['ansiedade','luto','depressao','relacionamento','tdah','tea','compulsao','dependencia','trauma','panico','toc'];
- const words=topics.filter(t=>norm(o.reason).includes(t));if(!words.length){el.textContent='Motivo sem palavra reconhecida. Faça a triagem manual.';return}
- const found=db.partners.filter(p=>p.status==='ativo').map(p=>({p,fit:words.filter(t=>norm(p.topics).includes(t)),shift:p.shifts==='Todos'||o.period==='A combinar'||p.shifts===o.period,packs:db.packages.filter(x=>x.partner_id===p.id&&pending(x)>0)})).filter(x=>x.fit.length&&x.shift&&x.packs.length);
- el.innerHTML=found.length?found.map(x=>'<p><strong>'+esc(x.p.name)+'</strong> · '+esc(x.p.approach||'Abordagem não informada')+' · '+esc(x.fit.join(', '))+' · '+x.packs.reduce((n,p)=>n+pending(p),0)+' pendente(s)</p>').join(''):'Nenhum parceiro ativo compatível. Revise manualmente.';
+ const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),tokens=s=>norm(s).split(/[^a-z0-9]+/).filter(w=>w.length>3);
+ const reason=tokens(o.reason),period=norm(o.period),audienceHint=norm([o.reason,o.name].join(' '));
+ const scored=db.partners.filter(p=>p.status==='ativo').map(p=>{
+  const pt=tokens(p.topics),pa=tokens(p.audiences),avail=norm([p.availability,p.shifts].join(' '));
+  const demand=[...new Set(reason.filter(w=>pt.includes(w)))],aud=[...new Set(reason.filter(w=>pa.includes(w)))];
+  const audienceTerms=['crianca','criancas','adolescente','adolescentes','adulto','adultos','idoso','idosos'];
+  const audienceAsked=audienceTerms.filter(w=>audienceHint.includes(w)),audienceOk=!audienceAsked.length||audienceAsked.some(w=>norm(p.audiences).includes(w));
+  const shiftOk=!period||period.includes('combinar')||avail.includes(period)||(['manha','tarde','noite'].some(x=>period.includes(x)&&avail.includes(x)));
+  const packs=db.packages.filter(x=>x.partner_id===p.id&&pending(x)>0),debt=packs.reduce((n,x)=>n+pending(x),0);
+  let score=0;if(demand.length)score+=45;if(audienceOk&&audienceAsked.length)score+=20;if(shiftOk)score+=20;if(debt>0)score+=15;
+  return {p,demand,audienceOk,audienceAsked,shiftOk,debt,score};
+ }).filter(x=>x.demand.length&&x.audienceOk&&x.shiftOk&&x.debt>0).sort((a,b)=>b.score-a.score||b.debt-a.debt||a.p.name.localeCompare(b.p.name)).slice(0,5);
+ el.innerHTML=scored.length?scored.map((x,n)=>'<article class="partner-card"><div class="partner-card-head"><strong>'+(n+1)+'. '+esc(x.p.name)+'</strong><span class="status">'+x.score+' pts</span></div><p><b>Compatibilidade:</b> '+esc(x.demand.join(', '))+(x.audienceAsked.length?' · público compatível':'')+' · disponibilidade compatível</p><p><b>Abordagem:</b> '+esc(x.p.approach||'Não informada')+'</p><p><b>Pendências:</b> '+x.debt+'</p><p class="muted mini">Sugestão operacional. Confirme o perfil antes do encaminhamento.</p></article>').join(''):'Nenhum profissional ativo com demanda, disponibilidade e pacote pendente compatíveis. Revise manualmente.';
 }
 function bindForm(sel,fn){$(sel).addEventListener('submit',async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;try{await fn(Object.fromEntries(new FormData(e.currentTarget)));e.currentTarget.reset();await load();flash('Registrado com sucesso.')}catch(x){flash(x.message,true)}finally{b.disabled=false}})}
 function bind(){
