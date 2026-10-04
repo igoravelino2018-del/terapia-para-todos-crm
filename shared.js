@@ -97,7 +97,7 @@ function renderMatches(){
  ];
  const scored=db.partners.filter(p=>p.status==='ativo').map(p=>{
   const pt=tokens(p.topics),pa=tokens(p.audiences),avail=norm([p.availability,p.shifts].join(' ')),approach=norm(p.approach);
-  const demand=[...new Set(reason.filter(w=>pt.includes(w)))],approachCompat=approachRules.filter(r=>r.demands.some(d=>reason.includes(d))&&r.approaches.some(a=>approach.includes(a))).map(r=>r.approaches.find(a=>approach.includes(a))).filter(Boolean);
+  const demand=[...new Set(reason.filter(w=>pt.includes(w)))],approachCompat=approachRules.filter(r=>r.demands.some(d=>reasonRaw.includes(d))&&r.approaches.some(a=>approach.includes(a))).map(r=>r.approaches.find(a=>approach.includes(a))).filter(Boolean);
   const audienceTerms=['crianca','criancas','adolescente','adolescentes','adulto','adultos','idoso','idosos'];
   const audienceAsked=audienceTerms.filter(w=>audienceHint.includes(w)),audienceOk=!audienceAsked.length||audienceAsked.some(w=>norm(p.audiences).includes(w));
   const shiftOk=!period||period.includes('combinar')||avail.includes(period)||(['manha','tarde','noite'].some(x=>period.includes(x)&&avail.includes(x)));
