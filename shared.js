@@ -58,7 +58,15 @@ function renderPartnerDirectory(){
 function render(){
  const open=db.opportunities.filter(o=>!active(o.id)&&o.status!=='Finalizada'),assigned=db.opportunities.filter(o=>active(o.id));
  const total=db.packages.reduce((n,p)=>n+pending(p),0),late=db.packages.filter(p=>pending(p)>0&&due(p)<new Date()).length;
- $('#metrics').innerHTML=[['Parceiros ativos',db.partners.filter(p=>p.status==='ativo').length],['Oportunidades abertas',db.opportunities.filter(o=>o.status!=='Finalizada').length],['Encaminhamentos ativos',db.referrals.filter(r=>r.active).length],['Pendências',total],['Pacotes vencidos',late]].map(x=>'<div class="card"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join('');
+ const activePartnersCount=db.partners.filter(p=>p.status==='ativo').length,unassigned=open.length,replacementOpen=db.replacements.filter(x=>{const p=pkg(x.package_id);return p&&pending(p)>0}).length;
+ $('#metrics').innerHTML=[
+  {label:'Aguardando encaminhamento',value:unassigned,tone:unassigned?'attention':'good',hint:unassigned?'pedem ação':'fila zerada'},
+  {label:'Pendências de entrega',value:total,tone:total?'attention':'good',hint:total?'nos pacotes ativos':'nenhuma pendência'},
+  {label:'Pacotes vencidos',value:late,tone:late?'danger':'good',hint:late?'prioridade máxima':'nenhum vencido'},
+  {label:'Reposições registradas',value:replacementOpen,tone:replacementOpen?'danger':'neutral',hint:replacementOpen?'acompanhar obrigação':'sem alerta'},
+  {label:'Parceiros ativos',value:activePartnersCount,tone:'neutral',hint:'disponíveis na operação'},
+  {label:'Encaminhamentos ativos',value:db.referrals.filter(r=>r.active).length,tone:'neutral',hint:'histórico operacional'}
+ ].map(x=>'<div class="card metric-card '+x.tone+'"><div class="metric-top"><small>'+x.label+'</small><span class="metric-dot"></span></div><strong>'+x.value+'</strong><span class="metric-hint">'+x.hint+'</span></div>').join('');
  const activePartners=db.partners.filter(p=>p.status==='ativo').sort((a,b)=>a.name.localeCompare(b.name));const chips=$('#active-partner-chips');if(chips)chips.innerHTML=activePartners.length?activePartners.map(p=>'<span class="active-partner-chip">'+esc(p.name)+'</span>').join(''):'<span class="muted mini">Nenhum parceiro ativo.</span>';
  $$('.partners').forEach(e=>options(e,db.partners,x=>x.name));
  $$('.packages').forEach(e=>options(e,db.packages,x=>(partner(x.partner_id)?.name||'?')+' · pacote '+x.quantity+' · '+pending(x)+' pend.'));
