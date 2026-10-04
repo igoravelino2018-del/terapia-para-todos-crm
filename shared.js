@@ -67,7 +67,12 @@ function render(){
   {label:'Parceiros ativos',value:activePartnersCount,tone:'neutral',hint:'disponíveis na operação'},
   {label:'Encaminhamentos ativos',value:db.referrals.filter(r=>r.active).length,tone:'neutral',hint:'histórico operacional'}
  ].map(x=>'<div class="card metric-card '+x.tone+'"><div class="metric-top"><small>'+x.label+'</small><span class="metric-dot"></span></div><strong>'+x.value+'</strong><span class="metric-hint">'+x.hint+'</span></div>').join('');
- const activePartners=db.partners.filter(p=>p.status==='ativo').sort((a,b)=>a.name.localeCompare(b.name));const chips=$('#active-partner-chips');if(chips)chips.innerHTML=activePartners.length?activePartners.map(p=>'<span class="active-partner-chip">'+esc(p.name)+'</span>').join(''):'<span class="muted mini">Nenhum parceiro ativo.</span>';
+ const activePartners=db.partners.filter(p=>p.status==='ativo').sort((a,b)=>a.name.localeCompare(b.name));
+ const packageCards=$('#active-package-cards');
+ if(packageCards){
+  const now=new Date(),items=db.packages.map(p=>{const left=pending(p),deadline=due(p),days=Math.ceil((deadline-now)/86400000),delivered=Math.max(0,p.quantity-left),pct=Math.max(0,Math.min(100,Math.round((delivered/p.quantity)*100)));return{p,left,deadline,days,delivered,pct}}).filter(x=>x.left>0).sort((a,b)=>(a.days<0?0:a.days<=3?1:2)-(b.days<0?0:b.days<=3?1:2)||a.days-b.days||b.left-a.left).slice(0,6);
+  packageCards.innerHTML=items.length?items.map(x=>{const who=partner(x.p.partner_id)?.name||'Parceiro';const tone=x.days<0?'urgent':x.days<=3?'warning':'';const deadline=x.days<0?'Vencido há '+Math.abs(x.days)+'d':x.days===0?'Vence hoje':'Prazo: '+x.days+'d';return '<article class="package-priority-card '+tone+'"><div class="package-priority-head"><strong>'+esc(who)+'</strong><span class="status '+(x.days<0?'overdue':'')+'">'+deadline+'</span></div><div class="package-priority-meta">Pacote '+x.p.quantity+' · '+x.delivered+' entregue'+(x.delivered===1?'':'s')+' · <b>'+x.left+' pendente'+(x.left===1?'':'s')+'</b></div><div class="progress-track"><div class="progress-fill" style="width:'+x.pct+'%"></div></div><div class="package-priority-foot"><span>'+x.pct+'% concluído</span><span>'+date(x.deadline)+'</span></div></article>'}).join(''):'<span class="muted mini">Nenhum pacote com entrega pendente.</span>';
+ }
  $$('.partners').forEach(e=>options(e,db.partners,x=>x.name));
  $$('.packages').forEach(e=>options(e,db.packages,x=>(partner(x.partner_id)?.name||'?')+' · pacote '+x.quantity+' · '+pending(x)+' pend.'));
  options($('#edit-partner'),db.partners,x=>x.name+' · '+x.status);options($('#match-opportunity'),db.opportunities,x=>x.name+' · '+x.period);
@@ -122,3 +127,4 @@ function bind(){
 addAuth();
 fetch('/api/config',{cache:'no-store'}).then(async r=>{const cfg=await r.json();if(!r.ok||!cfg.url||!cfg.key)throw Error(cfg.error||'Configuração indisponível');if(typeof supabase==='undefined')throw Error('Biblioteca de autenticação não carregou');sb=supabase.createClient(cfg.url,cfg.key);bind();$('#auth-status').innerHTML='<strong>Versão 03/10 · conexão pronta.</strong> Preencha e-mail e senha.';return boot()}).catch(e=>{const s=$('#auth-status');if(s)s.textContent='Falha ao iniciar CRM: '+e.message;flash('Falha ao iniciar CRM: '+e.message,true)});
 })();
+document.addEventListener('click',e=>{if(e.target.closest('.overview-go-packages')){const tab=document.querySelector('.nav-tab[data-view="packages"]');if(tab)tab.click()}});
