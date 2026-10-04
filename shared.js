@@ -74,17 +74,25 @@ function renderMatches(){
  const o=opp($('#match-opportunity')?.value),el=$('#matches');if(!el)return;if(!o){el.textContent='Selecione uma oportunidade.';return}
  const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),tokens=s=>norm(s).split(/[^a-z0-9]+/).filter(w=>w.length>3);
  const reason=tokens(o.reason),period=norm(o.period),age=Number(o.age)||null,ageAudience=age===null?'':age<12?'crianca':age<18?'adolescente':age>=60?'idoso':'adulto',audienceHint=norm([o.reason,ageAudience].join(' '));
+ const approachRules=[
+  {demands:['burnout','esgotamento','estresse','ansiedade','depressao','autoestima'],approaches:['tcc','terapia cognitiva comportamental','cognitivo comportamental']},
+  {demands:['relacionamento','relacionamentos','autoestima','ansiedade','depressao'],approaches:['terapia de esquemas','terapia do esquema','esquemas']}
+ ];
  const scored=db.partners.filter(p=>p.status==='ativo').map(p=>{
-  const pt=tokens(p.topics),pa=tokens(p.audiences),avail=norm([p.availability,p.shifts].join(' '));
-  const demand=[...new Set(reason.filter(w=>pt.includes(w)))],aud=[...new Set(reason.filter(w=>pa.includes(w)))];
+  const pt=tokens(p.topics),pa=tokens(p.audiences),avail=norm([p.availability,p.shifts].join(' ')),approach=norm(p.approach);
+  const demand=[...new Set(reason.filter(w=>pt.includes(w)))],approachCompat=approachRules.filter(r=>r.demands.some(d=>reason.includes(d))&&r.approaches.some(a=>approach.includes(a))).map(r=>r.approaches.find(a=>approach.includes(a))).filter(Boolean);
   const audienceTerms=['crianca','criancas','adolescente','adolescentes','adulto','adultos','idoso','idosos'];
   const audienceAsked=audienceTerms.filter(w=>audienceHint.includes(w)),audienceOk=!audienceAsked.length||audienceAsked.some(w=>norm(p.audiences).includes(w));
   const shiftOk=!period||period.includes('combinar')||avail.includes(period)||(['manha','tarde','noite'].some(x=>period.includes(x)&&avail.includes(x)));
   const packs=db.packages.filter(x=>x.partner_id===p.id&&pending(x)>0),debt=packs.reduce((n,x)=>n+pending(x),0);
-  let score=0;if(demand.length)score+=45;if(audienceOk&&audienceAsked.length)score+=20;if(shiftOk)score+=20;if(debt>0)score+=15;
-  return {p,demand,audienceOk,audienceAsked,shiftOk,debt,score};
- }).filter(x=>x.demand.length&&x.audienceOk&&x.shiftOk&&x.debt>0).sort((a,b)=>b.score-a.score||b.debt-a.debt||a.p.name.localeCompare(b.p.name)).slice(0,5);
- el.innerHTML=scored.length?scored.map((x,n)=>'<article class="partner-card"><div class="partner-card-head"><strong>'+(n+1)+'. '+esc(x.p.name)+'</strong><span class="status">'+x.score+' pts</span></div><p><b>Compatibilidade:</b> '+esc(x.demand.join(', '))+(x.audienceAsked.length?' · público compatível':'')+' · disponibilidade compatível</p><p><b>Abordagem:</b> '+esc(x.p.approach||'Não informada')+'</p><p><b>Pendências:</b> '+x.debt+'</p><p class="muted mini">Sugestão operacional. Confirme o perfil antes do encaminhamento.</p></article>').join(''):'Nenhum profissional ativo com demanda, disponibilidade e pacote pendente compatíveis. Revise manualmente.';
+  let score=0;if(demand.length)score+=45;else if(approachCompat.length)score+=30;if(audienceOk&&audienceAsked.length)score+=20;if(shiftOk)score+=20;if(debt>0)score+=15;
+  return {p,demand,approachCompat,audienceOk,audienceAsked,shiftOk,debt,score};
+ }).filter(x=>(x.demand.length||x.approachCompat.length)&&x.audienceOk&&x.shiftOk&&x.debt>0).sort((a,b)=>b.score-a.score||b.debt-a.debt||a.p.name.localeCompare(b.p.name)).slice(0,5);
+ el.innerHTML=scored.length?scored.map((x,n)=>{
+  const why=x.demand.length?'Demanda cadastrada compatível: '+x.demand.join(', '):'Abordagem com compatibilidade preliminar para a demanda: '+x.p.approach;
+  const caution=!x.demand.length&&x.approachCompat.length?'<p class="muted mini">⚠ A demanda não consta explicitamente no cadastro deste profissional. Confirme o perfil antes de encaminhar.</p>':'<p class="muted mini">Sugestão operacional. Confirme o perfil antes do encaminhamento.</p>';
+  return '<article class="partner-card"><div class="partner-card-head"><strong>'+(n+1)+'. '+esc(x.p.name)+'</strong><span class="status">'+x.score+' pts</span></div><p><b>Compatibilidade preliminar:</b> '+esc(why)+(x.audienceAsked.length?' · público compatível':'')+' · disponibilidade compatível</p><p><b>Abordagem:</b> '+esc(x.p.approach||'Não informada')+'</p><p><b>Pendências:</b> '+x.debt+'</p>'+caution+'</article>'
+ }).join(''):'Nenhum profissional ativo com compatibilidade preliminar, disponibilidade e pacote pendente. Revise manualmente.';
 }
 function bindForm(sel,fn){$(sel).addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,b=form.querySelector('button');b.disabled=true;try{const ok=await fn(Object.fromEntries(new FormData(form)));if(ok===false)return;form.reset();await load();flash('Registrado com sucesso.')}catch(x){flash(x.message,true)}finally{b.disabled=false}})}
 function bind(){
