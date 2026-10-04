@@ -59,6 +59,7 @@ function render(){
  const open=db.opportunities.filter(o=>!active(o.id)&&o.status!=='Finalizada'),assigned=db.opportunities.filter(o=>active(o.id));
  const total=db.packages.reduce((n,p)=>n+pending(p),0),late=db.packages.filter(p=>pending(p)>0&&due(p)<new Date()).length;
  $('#metrics').innerHTML=[['Parceiros ativos',db.partners.filter(p=>p.status==='ativo').length],['Oportunidades abertas',db.opportunities.filter(o=>o.status!=='Finalizada').length],['Encaminhamentos ativos',db.referrals.filter(r=>r.active).length],['Pendências',total],['Pacotes vencidos',late]].map(x=>'<div class="card"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join('');
+ const activePartners=db.partners.filter(p=>p.status==='ativo').sort((a,b)=>a.name.localeCompare(b.name));const chips=$('#active-partner-chips');if(chips)chips.innerHTML=activePartners.length?activePartners.map(p=>'<span class="active-partner-chip">'+esc(p.name)+'</span>').join(''):'<span class="muted mini">Nenhum parceiro ativo.</span>';
  $$('.partners').forEach(e=>options(e,db.partners,x=>x.name));
  $$('.packages').forEach(e=>options(e,db.packages,x=>(partner(x.partner_id)?.name||'?')+' · pacote '+x.quantity+' · '+pending(x)+' pend.'));
  options($('#edit-partner'),db.partners,x=>x.name+' · '+x.status);options($('#match-opportunity'),db.opportunities,x=>x.name+' · '+x.period);
