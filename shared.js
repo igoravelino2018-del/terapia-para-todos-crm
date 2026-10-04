@@ -75,7 +75,7 @@ function render(){
  }
  $$('.partners').forEach(e=>options(e,db.partners,x=>x.name));
  $$('.packages').forEach(e=>options(e,db.packages,x=>(partner(x.partner_id)?.name||'?')+' · pacote '+x.quantity+' · '+pending(x)+' pend.'));
- options($('#edit-partner'),db.partners,x=>x.name+' · '+x.status);options($('#match-opportunity'),db.opportunities,x=>x.name+' · '+x.period);
+ options($('#edit-partner'),db.partners,x=>x.name+' · '+x.status);options($('#match-opportunity'),open,x=>x.name+' · '+x.period);
  options($('#available'),open,x=>x.name);options($('#assigned'),assigned,x=>x.name);
  const rp=$('#replacement-form [name="packageId"]')?.value;
  options($('#replacement-referral'),db.referrals.filter(r=>(!rp||r.package_id===rp)&&r.active&&!db.replacements.some(x=>x.referral_id===r.id)),r=>(opp(r.opportunity_id)?.name||'?'));
